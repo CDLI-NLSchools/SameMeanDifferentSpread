@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Same Mean, Different Spread — Math 2201</title>
+<style>
+  :root{--ink:#1c2b33;--accent:#0f766e;--accent2:#b45309;--bg:#f7f5f0;--card:#ffffff;--line:#d8d2c4;}
+  *{box-sizing:border-box;font-family:Verdana,Geneva,sans-serif;}
+  body{margin:0;background:var(--bg);color:var(--ink);}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 16px 32px;}
+  h1{font-size:1.35rem;margin:0 0 4px;}
+  .sub{font-size:.9rem;color:#4b5a61;margin:0 0 16px;line-height:1.45;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px;}
+  .stats{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:.92rem;margin-top:8px;}
+  .stats b{font-variant-numeric:tabular-nums;}
+  .tag{display:inline-block;font-size:.72rem;font-weight:bold;letter-spacing:.04em;padding:2px 8px;border-radius:20px;color:#fff;}
+  .tagA{background:var(--accent);} .tagB{background:var(--accent2);}
+  svg{width:100%;height:auto;display:block;touch-action:none;}
+  .pt{cursor:grab;} .pt:active{cursor:grabbing;}
+  button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:.9rem;cursor:pointer;}
+  button.alt{background:#fff;color:var(--accent);border:1.5px solid var(--accent);}
+  button:hover{opacity:.88;}
+  .challenge{border-left:5px solid var(--accent2);background:#fdf6ec;}
+  .challenge p{margin:4px 0;line-height:1.5;font-size:.93rem;}
+  #verdict{font-weight:bold;}
+  .ok{color:#15803d;} .notyet{color:#b45309;}
+  .hint{font-size:.82rem;color:#4b5a61;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Same Mean, Different Spread</h1>
+  <p class="sub">Two classes wrote the same quiz. Their <b>means and medians are identical</b> — but the classes are not the same.
+  Drag the points in each row and watch what changes and what refuses to change. Dispersion describes how spread out the data is, even when the centre is the same.</p>
+
+  <div class="card">
+    <span class="tag tagA">CLASS A</span>
+    <svg id="svgA" viewBox="0 0 880 120" role="img" aria-label="Class A data points on a number line"></svg>
+    <div class="stats" id="statsA"></div>
+  </div>
+
+  <div class="card">
+    <span class="tag tagB">CLASS B</span>
+    <svg id="svgB" viewBox="0 0 880 120" role="img" aria-label="Class B data points on a number line"></svg>
+    <div class="stats" id="statsB"></div>
+  </div>
+
+  <div class="card challenge">
+    <p><b>Challenge:</b> Without changing Class B's mean, make Class B's <b>range at least double</b> Class A's range.
+    Then make it <b>half</b> of Class A's range. What did you have to do to the points each time — and what happened to the outliers?</p>
+    <p id="verdict" class="notyet">Drag Class B's points to try it.</p>
+    <p>
+      <button id="btnDouble">Check: range doubled</button>
+      <button id="btnHalf" class="alt">Check: range halved</button>
+      <button id="btnReset" class="alt">Reset both classes</button>
+    </p>
+    <p class="hint">Tip: a set's mean stays put when you move points in balanced pairs — one up as much as another goes down.</p>
+  </div>
+</div>
+<script>
+(function(){
+  var MIN=0, MAX=20, W=880, PAD=40, Y=58;
+  function x(v){ return PAD + (v-MIN)/(MAX-MIN)*(W-2*PAD); }
+  function v(xpx){ var val = MIN + (xpx-PAD)/(W-2*PAD)*(MAX-MIN); val = Math.round(val*2)/2; return Math.max(MIN, Math.min(MAX, val)); }
+  var startA=[5,7,8,9,10,11,12,13,15];
+  var startB=[1,6,8,9,10,11,12,14,19];
+  var A=startA.slice(), B=startB.slice();
+  function mean(a){ return a.reduce(function(s,n){return s+n;},0)/a.length; }
+  function median(a){ var s=a.slice().sort(function(p,q){return p-q;}); var m=Math.floor(s.length/2); return s.length%2? s[m] : (s[m-1]+s[m])/2; }
+  function range(a){ return Math.max.apply(null,a)-Math.min.apply(null,a); }
+  function fmt(n){ return (Math.round(n*100)/100).toString(); }
+  function draw(svg, data, color){
+    var s='';
+    s+='<line x1="'+PAD+'" y1="'+Y+'" x2="'+(W-PAD)+'" y2="'+Y+'" stroke="#8a8378" stroke-width="2"/>';
+    for(var t=MIN;t<=MAX;t+=2){ s+='<line x1="'+x(t)+'" y1="'+(Y-6)+'" x2="'+x(t)+'" y2="'+(Y+6)+'" stroke="#8a8378" stroke-width="1.5"/><text x="'+x(t)+'" y="'+(Y+26)+'" font-size="12" text-anchor="middle" fill="#4b5a61">'+t+'</text>'; }
+    var mn=mean(data);
+    s+='<line x1="'+x(mn)+'" y1="14" x2="'+x(mn)+'" y2="'+(Y+12)+'" stroke="'+color+'" stroke-width="2" stroke-dasharray="5 4"/>';
+    s+='<text x="'+x(mn)+'" y="12" font-size="12" text-anchor="middle" fill="'+color+'" font-weight="bold">mean</text>';
+    data.forEach(function(val,i){
+      s+='<circle class="pt" data-i="'+i+'" cx="'+x(val)+'" cy="'+Y+'" r="11" fill="'+color+'" stroke="#fff" stroke-width="2.5"/>';
+    });
+    svg.innerHTML=s;
+  }
+  function stats(el, data){
+    el.innerHTML='<span>Mean: <b>'+fmt(mean(data))+'</b></span><span>Median: <b>'+fmt(median(data))+'</b></span><span>Range: <b>'+fmt(range(data))+'</b></span><span>Min: <b>'+fmt(Math.min.apply(null,data))+'</b></span><span>Max: <b>'+fmt(Math.max.apply(null,data))+'</b></span>';
+  }
+  var svgA=document.getElementById('svgA'), svgB=document.getElementById('svgB');
+  function render(){ draw(svgA,A,'#0f766e'); stats(document.getElementById('statsA'),A); draw(svgB,B,'#b45309'); stats(document.getElementById('statsB'),B); bind(svgA,A); bind(svgB,B); }
+  function bind(svg, data){
+    svg.querySelectorAll('.pt').forEach(function(c){
+      c.addEventListener('pointerdown', function(e){
+        e.preventDefault(); c.setPointerCapture(e.pointerId);
+        var i=+c.getAttribute('data-i');
+        function move(ev){
+          var r=svg.getBoundingClientRect();
+          var px=(ev.clientX-r.left)/r.width*W;
+          data[i]=v(px); render();
+        }
+        function up(){ c.removeEventListener('pointermove',move); c.removeEventListener('pointerup',up); }
+        c.addEventListener('pointermove',move); c.addEventListener('pointerup',up);
+      });
+    });
+  }
+  function setVerdict(ok,msg){ var el=document.getElementById('verdict'); el.className=ok?'ok':'notyet'; el.textContent=msg; }
+  document.getElementById('btnDouble').addEventListener('click',function(){
+    var ok = range(B) >= 2*range(A) && Math.abs(mean(B)-mean(startB))<0.001;
+    if(ok) setVerdict(true,'Done — Class B\u2019s range ('+fmt(range(B))+') is at least double Class A\u2019s ('+fmt(range(A))+'), and the mean never moved. The centres agree; the dispersion tells the real story.');
+    else setVerdict(false,'Not yet — Class B\u2019s range is '+fmt(range(B))+' and A\u2019s is '+fmt(range(A))+', and B\u2019s mean is '+fmt(mean(B))+' (it must stay '+fmt(mean(startB))+'). Keep the mean fixed and push points outward in balanced pairs.');
+  });
+  document.getElementById('btnHalf').addEventListener('click',function(){
+    var ok = range(B) <= 0.5*range(A) && Math.abs(mean(B)-mean(startB))<0.001;
+    if(ok) setVerdict(true,'Done — Class B is now tightly clustered around the same mean. Same centre, far less dispersion: that is what "more consistent" means in numbers.');
+    else setVerdict(false,'Not yet — Class B\u2019s range is '+fmt(range(B))+', half of A\u2019s would be '+fmt(range(A)/2)+' or less, and B\u2019s mean must stay '+fmt(mean(startB))+'. Pull points inward in balanced pairs.');
+  });
+  document.getElementById('btnReset').addEventListener('click',function(){ A=startA.slice(); B=startB.slice(); render(); setVerdict(false,'Drag Class B\u2019s points to try it.'); });
+  render();
+})();
+</script>
+</body>
+</html>
